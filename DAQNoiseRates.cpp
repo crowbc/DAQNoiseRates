@@ -4,14 +4,16 @@ stores the default settings in DAQ.ratdb, plus adds lines for average
 noise rate and turning on noise. It generates a normal distribution 
 for noise rates on the PMT's, plus some high rate outliers. The normal
 distribution is centered at the nominal noise rate of 3 kHz and the 
-max is 10 kHz. IMPORTANT: back up any copy of DAQ.ratdb stored in the 
-ratpac/data folder before executing this script.
+max is 10 kHz. IMPORTANT: select only the options provided in the file 
+handler to process existing DAQ.ratdb file. Otherwise the program 
+terminates.
 Author: Brian Crow
 Institution: University of Hawaii at Manoa
 Created: 10SEP2019
 Modified: 12SEP2019
 Version: 0.1.1
 Changelog:
+	v 0.2:	Added file handler for existing DAQ.ratdb files.
 	v 0.1.1 Revised initial version now populates the correct number
 		of PMT's for WATCHMAN.
 	v 0.1:  Initial version - code populates the array with the nominal
@@ -51,10 +53,68 @@ int main()
     std::string nRate = "noise_rate: 3000.0d,\n";
     std::string next2last = "noise_flag: 2,\n";
     std::string last = "}\n";
+    std::ifstream iFile;
     std::ofstream oFile;
+    char chr;
     // double noiseRate(3000.0);
-    // do stuff to the output file
-    oFile.open(fName);
+    // Check to see if the file already exists
+    iFile.open(fName);
+    if(iFile.fail())
+    {
+	    cout << "DAQ.ratdb does not exist. Creating file.\n";
+	    oFile.open(fName);
+    } // end if
+    else
+    {
+	    cout << "DAQ.ratdb already exists. Select option: b)ackup existing file";
+	    cout << " (WARNING! This will overwrite existing backups!), o)verwrite, or n)ew filename?";
+	    cin >> chr;
+	    cout << std::endl;
+	    switch(chr)
+	    {
+		    case 'b':
+			    {
+				    std::string name = fName+".backup";
+				    oFile.open(name,ios::trunc);
+				    std::string line;
+				    while(getline(iFile,line))
+				    {
+					    oFile << line << std::endl;
+				    } // end while for reading file and writing to backup
+				    iFile.close();
+				    oFile.close();
+				    oFile.open(fName,ios::trunc); // open in truncate mode to overwrite DAQ.ratdb
+				    break;
+			    }
+		    case 'o':
+			    {
+				    // open in truncate mode to overwrite DAQ.ratdb
+				    iFile.close();
+				    oFile.open(fName,ios::trunc);
+				    break;
+			    }
+		    case 'n':
+			    {
+				    std::string name;
+				    iFile.close();
+				    std::cout << "WARNING! Using this option will overwrite matching filenames!";
+				    std::cout << "Type the name of the file you wish to create: ";
+				    std::cin >> name;
+				    // name = name - "\n";
+				    oFile.open(name,ios::trunc);
+				    break;
+			    }
+		    otherwise:
+			    {
+				    std::cout << "Invalid input. Terminating program.\n";
+				    iFile.close();
+				    exit(1);
+			    }
+	    } // end switch
+    } // end else
+
+    // Write to the output file
+    // oFile.open(fName);
     oFile << line1 << line2 << line3 << line4 << line5 << nRate << "PMTnoise: [";
 	
 	
@@ -62,12 +122,13 @@ int main()
     for (int i = 0; i <= N; i++)
     {
         /*
-            generate a Gaussian distribution of frequencies centered
-            at 3 kHz, with a standard deviation of 1 kHz. Make a 
+            Generate a Gaussian distribution of frequencies centered
+            at 3 kHz, with a standard deviation of .75 kHz. Make a 
             uniform distribution for frequencies outside the range of
-            1 kHz - 5 kHz and populate both ends uniformly (i.e. put
-            roughly 0.83% in each kHz bin outside the range of 1 to 5
-            kHz.)
+            1.5 kHz - 4.5 kHz and populate both ends uniformly (i.e. put
+            roughly 0.017 % of frequencies below the 2.5th percentile and 
+	    above the 97.5th percentile in each .1 kHz bin outside the 
+	    range of 1.5 to 4.5 kHz.)
         */
 	oFile << nomRate;
 	if (i<N)
