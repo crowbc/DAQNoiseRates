@@ -10,15 +10,17 @@ program terminates.
 Author: Brian Crow
 Institution: University of Hawaii at Manoa
 Created: 10SEP2019
-Modified: 12SEP2019
-Version: 1.0
+Modified: 25SEP2019
+Version: 1.0.1
 Changelog:
-	v 1.0:	Added random number generators for normal distribution of
+	v 1.0.1:Added "d" string to doubles for each frequency to go in output array.
+		Declared all non-variable strings at the beginning of the main function
+	v 1.0.0:Added random number generators for normal distribution of
 		noise frequencies. Tails of the Gaussian are uniformly distributed.
-	v 0.2:	Added file handler for existing DAQ.ratdb files.
-	v 0.1.1 Revised initial version now populates the correct number
+	v 0.2.0:Added file handler for existing DAQ.ratdb files.
+	v 0.1.1:Revised initial version now populates the correct number
 		of PMT's for WATCHMAN.
-	v 0.1:  Initial version - code populates the array with the nominal
+	v 0.1.0:Initial version - code populates the array with the nominal
     		noise rate.
 */
 
@@ -41,10 +43,10 @@ using namespace std;
 // constants
 const double nomRate(3000.0); // nominal dark current rate in Hz
 const double maxRate(10000.0); // max dark current rate in Hz
-const double lower(1500.0); // upper bound of the lowest uniform interval
-const double upper(4500.0); // lower bound of the highest uniform interval
 const double sig(750.0); // standard deviation of frequency range
-const int N(3553); // index of highest PMT starting at 0. Includes veto. Change to 3257 for inner PMT's only
+const double lower(1500.0); // upper bound of the lowest uniform interval, should be nominal - 2*sig
+const double upper(4500.0); // lower bound of the highest uniform interval, should be nominal + 2*sig
+const int N(3553); // index of highest PMT starting at 0. 3553 includes veto. Change to 3257 for inner PMT's only
 
 // function declarations
 double freq(double mean, double sd);
@@ -62,6 +64,8 @@ int main()
     std::string line4 = "valid_end: [0, 0],\n";
     std::string line5 = "channel_efficiency: 1.0,\n";
     std::string nRate = "noise_rate: 3000.0d,\n";
+    std::string arrayStart = "PMTnoise: [";
+    std::string arrayEnd = "],\n";
     std::string next2last = "noise_flag: 2,\n";
     std::string last = "}\n";
     std::ifstream iFile;
@@ -136,7 +140,7 @@ int main()
     } // end else
 
     // Write to the output file
-    oFile << line1 << line2 << line3 << line4 << line5 << nRate << "PMTnoise: [";
+    oFile << line1 << line2 << line3 << line4 << line5 << nRate << arrayStart;
 	
 	
     // make the array of noise frequencies and store in output file
@@ -150,14 +154,14 @@ int main()
 	    freq(mean, sd), tails(), doLower(), and doUpper() functions.
         */
 	rate = freq(nomRate, sig);
-	oFile << rate;
+	oFile << rate << "d";
 	if (i<N)
 	{
 		oFile << ", ";
 	} // end if
 	else
 	{
-		oFile << "],\n" << next2last << last;
+		oFile << arrayEnd << next2last << last;
 		std::cout << fName << " has been populated. Terminating program.\n"; // debug message
 	} // end else
     } // end for loop
