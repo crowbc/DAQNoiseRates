@@ -10,17 +10,19 @@ program terminates.
 Author: Brian Crow
 Institution: University of Hawaii at Manoa
 Created: 10SEP2019
-Modified: 25SEP2019
-Version: 1.0.1
+Modified: 26SEP2019
+Version: 1.0.3
 Changelog:
-	v 1.0.1:Added "d" string to doubles for each frequency to go in output array.
+	v1.0.3:	Restored "d" to the end of average noise entry. 
+	v1.0.2:	Removed "d" from array and from average noise entry..
+	v1.0.1:	Added "d" string to doubles for each frequency to go in output array.
 		Declared all non-variable strings at the beginning of the main function
-	v 1.0.0:Added random number generators for normal distribution of
+	v1.0.0:	Added random number generators for normal distribution of
 		noise frequencies. Tails of the Gaussian are uniformly distributed.
-	v 0.2.0:Added file handler for existing DAQ.ratdb files.
-	v 0.1.1:Revised initial version now populates the correct number
+	v0.2.0:	Added file handler for existing DAQ.ratdb files.
+	v0.1.1:	Revised initial version now populates the correct number
 		of PMT's for WATCHMAN.
-	v 0.1.0:Initial version - code populates the array with the nominal
+	v0.1.0:	Initial version - code populates the array with the nominal
     		noise rate.
 */
 
@@ -44,8 +46,8 @@ using namespace std;
 const double nomRate(3000.0); // nominal dark current rate in Hz
 const double maxRate(10000.0); // max dark current rate in Hz
 const double sig(750.0); // standard deviation of frequency range
-const double lower(1500.0); // upper bound of the lowest uniform interval, should be nominal - 2*sig
-const double upper(4500.0); // lower bound of the highest uniform interval, should be nominal + 2*sig
+const double lower(nomRate-2*sig); // upper bound of the lowest uniform interval, should be nominal - 2*sig
+const double upper(nomRate+2*sig); // lower bound of the highest uniform interval, should be nominal + 2*sig
 const int N(3553); // index of highest PMT starting at 0. 3553 includes veto. Change to 3257 for inner PMT's only
 
 // function declarations
@@ -63,8 +65,10 @@ int main()
     std::string line3 = "valid_begin: [0, 0],\n";
     std::string line4 = "valid_end: [0, 0],\n";
     std::string line5 = "channel_efficiency: 1.0,\n";
-    std::string nRate = "noise_rate: 3000.0d,\n";
+    std::string nRate = "noise_rate: ";
+    std::string nRateEndl = "d,\n";
     std::string arrayStart = "PMTnoise: [";
+    std::string delim = ", ";
     std::string arrayEnd = "],\n";
     std::string next2last = "noise_flag: 2,\n";
     std::string last = "}\n";
@@ -140,7 +144,7 @@ int main()
     } // end else
 
     // Write to the output file
-    oFile << line1 << line2 << line3 << line4 << line5 << nRate << arrayStart;
+    oFile << line1 << line2 << line3 << line4 << line5 << nRate << nomRate << nRateEndl << arrayStart;
 	
 	
     // make the array of noise frequencies and store in output file
@@ -154,10 +158,10 @@ int main()
 	    freq(mean, sd), tails(), doLower(), and doUpper() functions.
         */
 	rate = freq(nomRate, sig);
-	oFile << rate << "d";
+	oFile << rate;
 	if (i<N)
 	{
-		oFile << ", ";
+		oFile << delim;
 	} // end if
 	else
 	{
@@ -178,7 +182,7 @@ double freq(double mean, double sd)
 	std::default_random_engine gen1(seed1);
 	std::normal_distribution<double> dist1(mean,sd);
 	x=dist1(gen1);
-	if (x<mean-2*sd||x>mean+2*sd) // for more than 2 sigma away from nominal, use a uniform distribution
+	if (x<lower||x>upper) // for more than 2 sigma away from nominal, use a uniform distribution
 	{
 		x=tails();
 	} // end if

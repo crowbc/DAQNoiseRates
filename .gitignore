@@ -1,1 +1,3 @@
-DAQ.ratdb
+*.ratdb
+*.ratdb.backup
+*.backup
