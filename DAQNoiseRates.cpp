@@ -10,9 +10,10 @@ program terminates.
 Author: Brian Crow
 Institution: University of Hawaii at Manoa
 Created: 10SEP2019
-Modified: 26SEP2019
-Version: 1.0.3
+Modified: 22NOV2019
+Version: 1.0.4
 Changelog:
+	v1.0.4: Corrected the uniform distribution on the low end and high end to be truly uniform.
 	v1.0.3:	Restored "d" to the end of average noise entry. 
 	v1.0.2:	Removed "d" from array and from average noise entry..
 	v1.0.1:	Added "d" string to doubles for each frequency to go in output array.
@@ -26,7 +27,7 @@ Changelog:
     		noise rate.
 */
 
-// import statements
+// Include Statements
 #include <cstdlib>
 #include <string>
 #include <vector>
@@ -42,7 +43,7 @@ Changelog:
 
 using namespace std;
 
-// constants
+// Constants
 const double nomRate(3000.0); // nominal dark current rate in Hz
 const double maxRate(10000.0); // max dark current rate in Hz
 const double sig(750.0); // standard deviation of frequency range
@@ -50,13 +51,13 @@ const double lower(nomRate-2*sig); // upper bound of the lowest uniform interval
 const double upper(nomRate+2*sig); // lower bound of the highest uniform interval, should be nominal + 2*sig
 const int N(3553); // index of highest PMT starting at 0. 3553 includes veto. Change to 3257 for inner PMT's only
 
-// function declarations
+// Function Declarations
 double freq(double mean, double sd);
 double tails();
 double doLower();
 double doUpper();
 
-// main function
+// main Function
 int main()
 {
     std::string fName = "DAQ.ratdb";
@@ -121,7 +122,7 @@ int main()
 				    iFile.close();
 				    fred.clear();
 				    std::cout << "WARNING! Using this option will overwrite matching filenames! ";
-				    std::cout << "Continue (y/n)? ";
+				    std::cout << "Continue (y/n, n terminates program)? ";
 				    std::cin >> fred;
 				    if(fred[0]=='y')
 				    {
@@ -155,7 +156,7 @@ int main()
             at 3 kHz, with a standard deviation of .75 kHz. Make a 
             uniform distribution for frequencies outside the range of
             1.5 kHz - 4.5 kHz and populate both ends uniformly. See 
-	    freq(mean, sd), tails(), doLower(), and doUpper() functions.
+	    	freq(mean, sd), tails(), doLower(), and doUpper() functions.
         */
 	rate = freq(nomRate, sig);
 	oFile << rate;
@@ -172,9 +173,10 @@ int main()
     
     oFile.close();
     return 0;
-} // end main function
+} // End main Function
 
-// Function to generate a modified Gaussian
+// freq Function
+// generates a modified Gaussian
 double freq(double mean, double sd)
 {
 	double x;
@@ -188,26 +190,30 @@ double freq(double mean, double sd)
 	} // end if
 	dist1.reset();
 	return x;
-} // end freq function
+} // End freq Function
 
-// Function to put uniformly distributed freqencies for any number in the tails of the calling Gaussian distribution
+// tails Function
+// puts uniformly distributed freqencies for any number in the tails of the calling Gaussian distribution
 double tails()
 {
 	int p;
 	unsigned seed2 = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine gen2(seed2);
-	std::uniform_int_distribution<int> dist2(1,4);
+	// create a distribution of 14 bins of 500 Hz each.
+	std::uniform_int_distribution<int> dist2(1,14);
 	p=dist2(gen2);
 	double george;
-	if (p==1) // Put in the lower uniform distribution on a 1
+	// Put in the lower uniform distribution on a 1-3, representing 0-1500Hz
+	if (p<4)
 		george=doLower();
-	else // otherwise put in the upper distribution
+	else // otherwise put in the upper distribution of 4500-10000Hz
 		george=doUpper();
 	dist2.reset();
 	return george;
-} // end tails function
+} // End tails Function
 
-// Function to generate a uniform distribution for the lower tail of the calling Gaussian
+// doLower Function 
+// generates a uniform distribution for the lower tail of the calling Gaussian
 double doLower()
 {
 	double bob;
@@ -217,8 +223,10 @@ double doLower()
 	bob=dist3(gen3);
 	dist3.reset();
 	return bob;
-} // end doLower function
-// Function to generate a uniform distribution for the upper tail of the calling Gaussian
+} // End doLower Function
+
+// doUpper Function
+// generates a uniform distribution for the upper tail of the calling Gaussian
 double doUpper()
 {
 	double alice;
@@ -228,5 +236,4 @@ double doUpper()
 	alice=dist4(gen4);
 	dist4.reset();
 	return alice;
-} // end doUpper function
-
+} // End doUpper Function
